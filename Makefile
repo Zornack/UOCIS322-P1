@@ -6,13 +6,13 @@ install:
 	echo "Nothing to install"
 
 start:
-	bash start.sh
+	@if [[ -f "credentials.ini" ]]; then mv credentials.ini pageserver/credentials.ini; fi; bash start.sh
 
 stop:
-	bash stop.sh
+	@bash stop.sh
 
 run:
-	make start
+	@make -s start
 
 clean:
 	rm -f *.pyc

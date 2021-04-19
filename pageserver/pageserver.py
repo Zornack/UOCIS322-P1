@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 
 import socket    # Basic TCP/IP communication on the internet
 import _thread   # Response computation runs concurrently with main program
+import os.path
 
 
 def listen(portnum):
@@ -84,6 +85,8 @@ def respond(sock):
     Any valid GET request is answered with an ascii graphic of a cat.
     """
     sent = 0
+    options = get_options()
+    DOCROOT = options.DOCROOT
     request = sock.recv(1024)  # We accept only short requests
     request = str(request, encoding='utf-8', errors='strict')
     log.info("--- Received request ----")
@@ -91,8 +94,17 @@ def respond(sock):
 
     parts = request.split()
     if len(parts) > 1 and parts[0] == "GET":
-        transmit(STATUS_OK, sock)
-        transmit(CAT, sock)
+        address = parts[1]
+        slashLoc = address.rfind('/')
+        file = address[slashLoc:]
+        if ".." in file or "~" in file or "//" in file or (slashLoc - 1 > -1 and address[slashLoc - 1] == '/'):
+            transmit(STATUS_FORBIDDEN,sock)
+        elif os.path.isfile(DOCROOT + address):
+            file = open(DOCROOT + address, 'r')
+            transmit(STATUS_OK, sock)
+            transmit(file.read(), sock)
+        elif os.path.isfile(DOCROOT + address) == False:
+            transmit(STATUS_NOT_FOUND, sock)
     else:
         log.info("Unhandled request: {}".format(request))
         transmit(STATUS_NOT_IMPLEMENTED, sock)
