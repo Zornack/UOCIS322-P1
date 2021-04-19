@@ -85,6 +85,7 @@ def respond(sock):
     Any valid GET request is answered with an ascii graphic of a cat.
     """
     sent = 0
+    # pulls docroot from options, which gets it from credentials
     options = get_options()
     DOCROOT = options.DOCROOT
     request = sock.recv(1024)  # We accept only short requests
@@ -94,16 +95,21 @@ def respond(sock):
 
     parts = request.split()
     if len(parts) > 1 and parts[0] == "GET":
+        # grabs the path to the file from parts
         address = parts[1]
+        # locates filename
         slashLoc = address.rfind('/')
         file = address[slashLoc:]
+        # transmits 403 if the filename has a forbidden character
         if ".." in file or "~" in file or "//" in file or (slashLoc - 1 > -1 and address[slashLoc - 1] == '/'):
             transmit(STATUS_FORBIDDEN,sock)
+        # checks if the file exists from docroot. If it does, transmits it, along with a 200 code
         elif os.path.isfile(DOCROOT + address):
             file = open(DOCROOT + address, 'r')
             transmit(STATUS_OK, sock)
             transmit(file.read(), sock)
-        elif os.path.isfile(DOCROOT + address) == False:
+        # transmits a 404 if the file is not found
+        else:
             transmit(STATUS_NOT_FOUND, sock)
     else:
         log.info("Unhandled request: {}".format(request))
